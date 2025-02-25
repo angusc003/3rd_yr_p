@@ -27,6 +27,25 @@
             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
         }
 
+        /* Overlay for portrait mode */
+        #orientationWarning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.5rem;
+            z-index: 9999;
+            display: none; /* Hidden by default */
+        }
+
+
         /* Search Container */
         .search-container {
             position: relative;
@@ -220,6 +239,9 @@
     </style>
 </head>
 <body>
+
+    <div id="orientationWarning">Please rotate your device to landscape mode.</div>
+
     <button class="back-button" onclick="window.location.href='home.html'">Back to Home</button>
     <h1>Search Location</h1>
     <div class="search-container">
@@ -323,6 +345,18 @@
                 }
             });
         });
+        function checkOrientation() {
+            const warning = document.getElementById('orientationWarning');
+            if (window.innerHeight > window.innerWidth) {
+                warning.style.display = 'flex'; // Show warning in portrait mode
+            } else {
+                warning.style.display = 'none'; // Hide warning in landscape mode
+            }
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('load', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
     </script>
 </body>
 </html>
