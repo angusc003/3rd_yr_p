@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Searchable OSM Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(to bottom, #0a3d62, #3c6382);
+            color: white;
+            text-align: center;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+
+        .search-container {
+            position: relative; /* Ensures child elements are positioned relative to this */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            z-index: 1000;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 15px;
+            width: 300px;
+            border-radius: 10px;
+            border: none;
+            font-size: 1.2rem;
+            position: relative;
+        }
+
+        #suggestions {
+            position: absolute;
+            top: 100%; /* Places the suggestions immediately below the input */
+            left: 0;
+            width: 300px; /* Matches the width of the input */
+            background-color: rgba(255, 255, 255, 0.9);
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1001;
+            color: black;
+        }
+
+        #suggestions li {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #suggestions li:hover {
+            background-color: #ddd;
+        }
+
+        #searchButton, #clearButton, #generateButton, .back-button {
+            background-color: rgba(23, 61, 232, 0.763);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        #searchButton:hover, #clearButton:hover, #generateButton:hover, .back-button:hover {
+            background-color: rgba(139, 117, 251, 0.886);
+            transform: translateY(-3px);
+        }
+
+        .back-button {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+        }
+
+        .map-container {
+            width: 80vw;
+            height: 60vh;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        #map { 
+            width: 100%; 
+            height: 100%; 
+            border-radius: 10px;
+        }
+
+        .generate-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-button" onclick="window.location.href='home.html'">Back to Home</button>
+    <h1>Search Location</h1>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search for a location...">
+        <button id="searchButton">Search</button>
+        <button id="clearButton">Clear</button>
+        <ul id="suggestions" class="suggestions"></ul>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    <div class="generate-container">
+        <button id="generateButton">Generate Landscape</button>
+    </div>
+
+    <div class="coordinates-display" id="coordinatesDisplay">Lat: -, Lng: -</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const map = L.map('map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors'
+            }).addTo(map);
+
+            let currentMarker = null;
+            let currentLat = null, currentLng = null;
+
+            function placeMarker(lng, lat) {
+                if (currentMarker) map.removeLayer(currentMarker);
+                currentMarker = L.marker([lat, lng]).addTo(map);
+                map.setView([lat, lng], 15);
+                currentLat = lat;
+                currentLng = lng;
+                document.getElementById('coordinatesDisplay').innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+            }
+
+            map.on('click', (event) => {
+                const { lat, lng } = event.latlng;
+                placeMarker(lng, lat);
+            });
+
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const clearButton = document.getElementById('clearButton');
+            const generateButton = document.getElementById('generateButton');
+            const suggestionsList = document.getElementById('suggestions');
+
+            function clearSuggestions() {
+                suggestionsList.innerHTML = '';
+            }
+
+            async function searchLocation(query) {
+                clearSuggestions();
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        data.forEach(place => {
+                            const li = document.createElement('li');
+                            li.textContent = place.display_name;
+                            li.addEventListener('click', () => {
+                                const { lat, lon } = place;
+                                placeMarker(parseFloat(lon), parseFloat(lat));
+                                searchInput.value = place.display_name;
+                                clearSuggestions();
+                            });
+                            suggestionsList.appendChild(li);
+                        });
+                    } else {
+                        suggestionsList.innerHTML = '<li>No results found</li>';
+                    }
+                } catch (error) {
+                    console.error("Geocoding error:", error);
+                }
+            }
+
+            searchButton.addEventListener('click', () => {
+                const searchQuery = searchInput.value.trim();
+                if (searchQuery) {
+                    searchLocation(searchQuery);
+                    searchInput.value = '';
+                    clearSuggestions();
+                }
+            });
+
+            clearButton.addEventListener('click', () => {
+                searchInput.value = '';
+                clearSuggestions();
+            });
+
+            generateButton.addEventListener('click', () => {
+                if (currentLat !== null && currentLng !== null) {
+                    window.location.href = `3D-model.html?lat=${currentLat}&lng=${currentLng}`;
+                } else {
+                    alert("Please select a location on the map first.");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

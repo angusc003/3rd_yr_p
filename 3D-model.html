@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapbox 3D Map with Terrain and Buildings</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+        #map { width: 100%; height: 100%; }
+
+        /* Control Panel */
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-button {
+            background-color: rgba(23, 61, 232, 0.763);
+            border: 1px solid #ccc;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .control-button:hover {
+            background-color: rgba(139, 117, 251, 0.886);
+        }
+
+        .direction-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background-color: rgba(23, 61, 232, 0.763);
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            top: 50px; /* Positioned below the direction display */
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            
+        }
+
+        .zoom-controls .control-button {
+            border: 1px solid #ccc;
+            background-color: rgba(23, 61, 232, 0.763);
+            color: white;
+            font-size: 18px;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Left and Right Look Buttons */
+        .look-controls {
+            position: absolute;
+            top: 50%;
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            transform: translateY(-50%);
+        }
+
+        .look-controls .control-button {
+            border: 1px solid #ccc;
+            background-color: rgba(23, 61, 232, 0.763);
+            color: white;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .look-controls .control-button:hover {
+            background-color: rgba(139, 117, 251, 0.886);
+        }
+
+        /* Map Style Toggle Button */
+        .map-style-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid white;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-style-toggle:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: -150%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        /* HUD Toggle Button */
+        .hud-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: rgba(23, 61, 232, 0.763);
+            border: 1px solid #ccc;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .hud-toggle:hover {
+            background-color: rgba(139, 117, 251, 0.886);
+        }
+
+        /* Positioning the look buttons slightly off the screen edges */
+        #left {
+            margin-left: 10px; /* Adjust value to control how far left off the edge it goes */
+        }
+        #right {
+            margin-right: 10px; /* Adjust value to control how far right off the edge it goes */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Mapbox Map Container -->
+    <div id="map"></div>
+
+    <!-- Direction Display -->
+    <div class="direction-display" id="directionDisplay">Facing: North</div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="control-button" id="zoom-in">+</button>
+        <button class="control-button" id="zoom-out">-</button>
+        <button id="map-style-toggle" class="map-style-toggle" style="background-image: url('street-view.png');" data-tooltip="Switch to Street View"></button>
+    </div>
+
+    <!-- general controls -->
+    <div class="control-panel">
+        <button class="control-button" id="home-button">Home</button>
+        <button class="control-button" id="original">Original Position</button>
+        <button class="control-button" id="view">POV</button>
+        <button class="control-button" id="bird-view">Birdseye View</button>
+        <button class="control-button" id="snapshot">Screenshot</button>
+    </div>
+
+    
+    
+    <canvas id="snapshotCanvas" style="display: none;"></canvas>
+    
+    
+
+    <!-- Look Control Buttons -->
+    <div class="look-controls">
+        <button class="control-button" id="left"><</button>
+        <button class="control-button" id="right">></button>
+    </div>
+
+    <button class="control-button hud-toggle" id="hud-toggle">Hide HUD</button>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.js"></script>
+
+    <script>
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const lat = params.get("lat");
+            const lng = params.get("lng");
+
+            if (lat && lng) {
+                return [parseFloat(lng), parseFloat(lat)]; // Mapbox uses [lng, lat] format
+            }
+            return null;
+        }
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYWMwMDMiLCJhIjoiY20ydDNuMHdzMDN5YzJwc2FkZnNreDZ4eiJ9.Pej4y2rES3KD3nPfTGn1AQ';
+
+        // Initial center coordinates
+        const initialCenter = getQueryParams() || [-3.005217, 54.528916];
+        let coordinates = null;
+        let currentMarker = null; // Variable to store the current marker
+        let currentStyle = 'mapbox://styles/mapbox/satellite-streets-v12';
+
+
+        // Initialize Mapbox map
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: currentStyle,
+            center: initialCenter,
+            zoom: 16,
+            pitch: 55, // Tilt the map to simulate a 3D effect
+            bearing: 0, // Angle of view
+        });
+
+        map.setMaxZoom(20);
+
+        map.on('style.load', () => {
+            // Insert the layer beneath any symbol layer.
+            const layers = map.getStyle().layers;
+            const labelLayerId = layers.find(
+                (layer) => layer.type === 'symbol' && layer.layout['text-field']
+            ).id;
+
+            // The 'building' layer in the Mapbox Streets
+            // vector tileset contains building height data
+            // from OpenStreetMap.
+            map.addLayer(
+                {
+                    'id': 'add-3d-buildings',
+                    'source': 'composite',
+                    'source-layer': 'building',
+                    'filter': ['==', 'extrude', 'true'],
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'paint': {
+                        'fill-extrusion-color': '#aaa',
+
+                        // Use an 'interpolate' expression to
+                        // add a smooth transition effect to
+                        // the buildings as the user zooms in.
+                        'fill-extrusion-height': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            15,
+                            0,
+                            15.05,
+                            ['get', 'height']
+                        ],
+                        'fill-extrusion-base': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            15,
+                            0,
+                            15.05,
+                            ['get', 'min_height']
+                        ],
+                        'fill-extrusion-opacity': 0.7
+                    }
+                },
+                labelLayerId
+            );
+        });
+
+
+        function updateDirectionDisplay(bearing) {
+            const directionDisplay = document.getElementById('directionDisplay');
+            bearing = (bearing % 360 + 360) % 360; // Normalize bearing to 0-360 degrees
+            let direction;
+
+            if (bearing >= 355 || bearing <= 5) {
+                direction = "North"; // 0
+            } else if (bearing >= 40 && bearing <= 50) {
+                direction = "Northeast"; // 45
+            } else if (bearing >= 85 && bearing <= 95) {
+                direction = "East"; // 90
+            } else if (bearing >= 130 && bearing <= 140) {
+                direction = "Southeast"; // 135
+            } else if (bearing >= 175 && bearing <= 185) {
+                direction = "South"; // 180
+            } else if (bearing >= 220 && bearing <= 230) {
+                direction = "Southwest"; // 225
+            } else if (bearing >= 265 && bearing <= 275) {
+                direction = "West"; // 270
+            } else if (bearing >= 310 && bearing <= 320) {
+                direction = "Northwest"; // 315
+            } else {
+                direction = "Loading...";
+            }
+
+            directionDisplay.innerText = `Facing: ${direction}`;
+        }
+
+        // Update direction initially and on bearing change
+        map.on('load', () => updateDirectionDisplay(map.getBearing()));
+        map.on('rotate', () => updateDirectionDisplay(map.getBearing()));
+
+
+        map.on('load', () => {
+
+            map.setLayoutProperty('poi-label', 'text-allow-overlap', true);
+            map.setLayoutProperty('poi-label', 'text-ignore-placement', true);
+
+            // Add raster-dem source for terrain
+            map.addSource('mapbox-dem', {
+                "type": "raster-dem",
+                "url": "mapbox://mapbox.mapbox-terrain-dem-v1",
+                "tileSize": 512,
+                "maxzoom": 14
+            });
+            
+            // Set the 3D terrain with exaggeration
+            map.setTerrain({ source: 'mapbox-dem', exaggeration: 1 });
+
+            // Add a layer to show contour lines
+            map.addLayer({
+                'id': 'contours',
+                'type': 'line',
+                'source': 'mapbox-dem',
+                'source-layer': 'mapbox.mapbox-terrain-dem-v1',
+                'paint': {
+                    'line-color': '#000000', // Color for the contour lines
+                    'line-width': 2, // Width of the contour lines
+                    'line-opacity': 0.7 // Make lines semi-transparent
+                },
+                'filter': [
+                    'all',
+                    ['>=', ['get', 'elevation'], 100], // Only show contours at elevation levels above 100
+                    ['<', ['get', 'elevation'], 750] // Show contours within a specific elevation range (you can adjust these values)
+                ]
+            });
+
+            // Hillshade layer for colored terrain shadows
+            map.addLayer({
+                'id': 'hillshade',
+                'type': 'hillshade',
+                'source': 'mapbox-dem',
+                'layout': {},
+                'paint': {
+                    'hillshade-illumination-direction': 315,
+                    'hillshade-exaggeration': 0.6, // Adjust for shadow intensity
+                    'hillshade-shadow-color': '#555555', // Darker shadow for contrast
+                    'hillshade-highlight-color': '#ffffff', // Lighten highlights
+                    'hillshade-accent-color': '#888888' // Base accent color for hillshade
+                }
+            });
+
+            map.once('load', () => {
+                const poiLayers = ['poi-label', 'transit-label'];
+
+                for (const layerId of poiLayers) {
+                    const currFilter = map.getFilter(layerId);
+                    const updatedFilter = [
+                        'all',
+                        currFilter,
+                        [
+                            'case',
+                            ['<=', ['pitch'], 60],
+                            true,
+                            [
+                                'all',
+                                ['<=', ['distance-from-center'], 300], // Increased distance
+                                ['>', ['pitch'], 60]
+                            ],
+                            true,
+                            false
+                        ]
+                    ];
+
+                    map.setFilter(layerId, updatedFilter);
+                }
+            });
+
+            // Add "You Are Here" marker at the center coordinates
+            const youAreHereMarker = new mapboxgl.Marker({ color: 'red' })
+                .setLngLat(initialCenter)
+                .setPopup(new mapboxgl.Popup({ offset: 25 }).setText('You Are Here'))
+                .addTo(map);
+
+        });
+
+        function original(){
+            const bearing = map.getBearing();
+            map.flyTo({
+                center: initialCenter,
+                zoom: 16,
+                pitch: 45,
+                bearing: bearing,
+            });
+        }
+
+        const styleToggleButton = document.getElementById('map-style-toggle');
+        let isSatellite = true;
+
+        styleToggleButton.addEventListener('click', () => {
+            if (isSatellite) {
+                map.setStyle('mapbox://styles/mapbox/streets-v12');
+                styleToggleButton.style.backgroundImage = "url('satellite-view.png')";
+                styleToggleButton.setAttribute('data-tooltip', 'Switch to Satellite View');
+            } else {
+                map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
+                styleToggleButton.style.backgroundImage = "url('street-view.png')";
+                styleToggleButton.setAttribute('data-tooltip', 'Switch to Street View');
+            }
+            isSatellite = !isSatellite;
+        });
+
+        // Add button functionality
+        document.getElementById('left').addEventListener('click', () => {
+            map.rotateTo((map.getBearing() - 45));
+        });
+
+        document.getElementById('right').addEventListener('click', () => {
+            map.rotateTo((map.getBearing() + 45));
+        });
+
+        document.getElementById('view').addEventListener('click', () => {
+            if (coordinates != null){
+                viewPoint(coordinates);
+            } else {
+                viewPoint(null);
+            }  
+        });
+
+        document.getElementById('hud-toggle').addEventListener('click', toggleHUD);
+
+        function toggleHUD() {
+            const hudElements = document.querySelectorAll('.control-panel, .look-controls, .zoom-controls, .direction-display');
+            const hudToggleButton = document.getElementById('hud-toggle');
+            
+            // Check the current state and toggle visibility
+            if (hudToggleButton.innerText === 'Hide HUD') {
+                // Hide all HUD elements
+                hudElements.forEach(element => element.style.visibility = 'hidden');
+                hudToggleButton.innerText = 'Show HUD';
+            } else {
+                // Show all HUD elements
+                hudElements.forEach(element => element.style.visibility = 'visible');
+                hudToggleButton.innerText = 'Hide HUD';
+            }
+        }
+
+        document.getElementById('home-button').addEventListener('click', () => {window.location.href = 'home.html';});
+        
+        document.getElementById('bird-view').addEventListener('click', toggleView);
+
+        function toggleView() {
+            const button = document.getElementById('bird-view');
+            const isBirdseyeView = button.innerText === 'Birdseye View';
+
+            if (isBirdseyeView) {
+                // Change to birdseye view
+                map.setPitch(0);
+                map.setZoom(14);
+                button.innerText = 'Normal View';
+            } else {
+                // Change back to normal view
+                map.setPitch(55);
+                map.setZoom(16)
+                button.innerText = 'Birdseye View';
+            }
+        }
+
+        document.getElementById('snapshot').addEventListener('click', () => {
+            map.once('render', () => {
+                const canvas = map.getCanvas();
+                const snapshotCanvas = document.getElementById('snapshotCanvas');
+                const ctx = snapshotCanvas.getContext('2d');
+                snapshotCanvas.width = canvas.width;
+                snapshotCanvas.height = canvas.height;
+                ctx.drawImage(canvas, 0, 0);
+                const imageUrl = snapshotCanvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = imageUrl;
+                link.download = 'map_snapshot.png';
+                link.click();
+            });
+            map.triggerRepaint();
+        });
+
+
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            map.zoomIn();
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            map.zoomOut();
+        });
+
+        document.getElementById('original').addEventListener('click', () => {
+            original();
+        });
+        
+        // Click event to add a single marker
+        map.on('click', (event) => {
+            coordinates = event.lngLat; // Get coordinates of the click event
+
+            // Remove the existing marker if one exists
+            if (currentMarker) {
+                currentMarker.remove();
+            }
+
+            // Create a new marker
+            currentMarker = new mapboxgl.Marker({ color: 'blue' })
+                .setLngLat(coordinates)
+                .addTo(map); // Add marker to the map
+
+            console.log('Current Marker Coordinates:', coordinates);
+        });
+
+        function viewPoint(coordinates){
+            if (coordinates){
+                const bearing = map.getBearing();
+                map.flyTo({
+                    center: coordinates,
+                    zoom: 18.5,
+                    pitch: 85,
+                    bearing: bearing,
+                });
+            } else {
+                console.log("Need to place a marker")
+            }
+        }
+
+    </script>
+</body>
+</html>
