@@ -342,24 +342,6 @@
             // Set the 3D terrain with exaggeration
             map.setTerrain({ source: 'mapbox-dem', exaggeration: 1 });
 
-            // Add a layer to show contour lines
-            map.addLayer({
-                'id': 'contours',
-                'type': 'line',
-                'source': 'mapbox-dem',
-                'source-layer': 'mapbox.mapbox-terrain-dem-v1',
-                'paint': {
-                    'line-color': '#000000', // Color for the contour lines
-                    'line-width': 2, // Width of the contour lines
-                    'line-opacity': 0.7 // Make lines semi-transparent
-                },
-                'filter': [
-                    'all',
-                    ['>=', ['get', 'elevation'], 100], // Only show contours at elevation levels above 100
-                    ['<', ['get', 'elevation'], 750] // Show contours within a specific elevation range (you can adjust these values)
-                ]
-            });
-
             // Hillshade layer for colored terrain shadows
             map.addLayer({
                 'id': 'hillshade',
@@ -423,16 +405,79 @@
         let isSatellite = true;
 
         styleToggleButton.addEventListener('click', () => {
+            const newStyle = isSatellite
+                ? 'mapbox://styles/mapbox/outdoors-v12'
+                : 'mapbox://styles/mapbox/satellite-streets-v12';
             if (isSatellite) {
-                map.setStyle('mapbox://styles/mapbox/streets-v12');
                 styleToggleButton.style.backgroundImage = "url('satellite-view.png')";
                 styleToggleButton.setAttribute('data-tooltip', 'Switch to Satellite View');
             } else {
-                map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
                 styleToggleButton.style.backgroundImage = "url('street-view.png')";
                 styleToggleButton.setAttribute('data-tooltip', 'Switch to Street View');
             }
+            map.setStyle(newStyle);
             isSatellite = !isSatellite;
+
+            // Wait for the new style to load before reapplying terrain and DEM
+            map.once('style.load', () => {
+                map.addSource('mapbox-dem', {
+                    "type": "raster-dem",
+                    "url": "mapbox://mapbox.mapbox-terrain-dem-v1",
+                    "tileSize": 512,
+                    "maxzoom": 14
+                });
+
+                map.setTerrain({ source: 'mapbox-dem', exaggeration: 1 });
+
+                // Reapply hillshade layer
+                map.addLayer({
+                    'id': 'hillshade',
+                    'type': 'hillshade',
+                    'source': 'mapbox-dem',
+                    'layout': {},
+                    'paint': {
+                        'hillshade-illumination-direction': 315,
+                        'hillshade-exaggeration': 0.6,
+                        'hillshade-shadow-color': '#555555',
+                        'hillshade-highlight-color': '#ffffff',
+                        'hillshade-accent-color': '#888888'
+                    }
+                });
+
+                // Restore 3D buildings
+                const layers = map.getStyle().layers;
+                const labelLayerId = layers.find(
+                    (layer) => layer.type === 'symbol' && layer.layout['text-field']
+                )?.id;
+
+                if (labelLayerId) {
+                    map.addLayer(
+                        {
+                            'id': 'add-3d-buildings',
+                            'source': 'composite',
+                            'source-layer': 'building',
+                            'filter': ['==', 'extrude', 'true'],
+                            'type': 'fill-extrusion',
+                            'minzoom': 15,
+                            'paint': {
+                                'fill-extrusion-color': '#aaa',
+                                'fill-extrusion-height': [
+                                    'interpolate', ['linear'], ['zoom'],
+                                    15, 0,
+                                    15.05, ['get', 'height']
+                                ],
+                                'fill-extrusion-base': [
+                                    'interpolate', ['linear'], ['zoom'],
+                                    15, 0,
+                                    15.05, ['get', 'min_height']
+                                ],
+                                'fill-extrusion-opacity': 0.7
+                            }
+                        },
+                        labelLayerId
+                    );
+                }
+            });
         });
 
         // Add button functionality

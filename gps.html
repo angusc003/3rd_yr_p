@@ -46,22 +46,22 @@
         }
 
         button {
-            background-color: #1e3799;
+            background-color: rgba(23, 61, 232, 0.763);
             color: white;
             border: none;
-            padding: clamp(10px, 2vh, 16px) clamp(20px, 4vw, 32px);
-            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            padding: clamp(10px, 2vh, 16px) clamp(16px, 3vw, 24px);
+            font-size: clamp(1.4rem, 3vh, 1.6rem);
             cursor: pointer;
             border-radius: 8px;
             box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
             transition: background 0.3s, transform 0.2s;
             margin-top: 2vh;
-            width: 80%;
-            max-width: 300px;
+            display: inline-block;
+            white-space: nowrap;
         }
 
         button:hover {
-            background-color: #4a69bd;
+            background-color: rgba(139, 117, 251, 0.886);
             transform: translateY(-2px);
         }
 
@@ -69,19 +69,23 @@
             position: absolute;
             top: 2vh;
             left: 2vw;
-            padding: clamp(8px, 2vh, 12px) clamp(16px, 4vw, 24px);
-            font-size: clamp(0.9rem, 2vw, 1.2rem);
-            background-color: #1e3799;
+            background-color: rgba(23, 61, 232, 0.763);
             color: white;
             border: none;
-            border-radius: 6px;
+            padding: clamp(10px, 2vh, 16px) clamp(16px, 3vw, 24px);
+            font-size: clamp(1.4rem, 3vw, 1.6rem);
             cursor: pointer;
-            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-            transition: background 0.3s;
+            border-radius: 8px;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s, transform 0.2s;
+            margin-top: 2vh;
+            margin-bottom: 1.4vh;
+            display: inline-block;
+            white-space: nowrap;
         }
 
         .back-button:hover {
-            background-color: #4a69bd;
+            background-color: rgba(139, 117, 251, 0.886);
         }
 
         /* Overlay for portrait mode */
@@ -102,17 +106,20 @@
             display: none; /* Hidden by default */
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             h1 {
                 font-size: 1.5rem;
             }
             button {
                 font-size: 1rem;
-                padding: 10px 20px;
+                padding: 0.6em;
             }
             .back-button {
                 font-size: 0.9rem;
-                padding: 8px 16px;
+                padding: 0.6em;
+            }
+            #map {
+                max-width:500px;
             }
         }
     </style>
@@ -120,7 +127,7 @@
 
 <body>
     <div id="orientationWarning">Please rotate your device to landscape mode.</div>
-    <button class="back-button" onclick="window.location.href='index.html'">Back to Home</button>
+    <button class="back-button" onclick="window.location.href='index.html'">Home</button>
     <h1>Current Location</h1>
     <div id="map"></div>
     <button onclick="navigateTo3DModel()">Generate Landscape</button>
