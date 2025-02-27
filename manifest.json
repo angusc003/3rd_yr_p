@@ -1,0 +1,8 @@
+{
+  "name": "Landscapes",
+  "short_name": "Landscapes",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}
