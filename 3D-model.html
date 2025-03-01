@@ -57,7 +57,7 @@
         .zoom-controls {
             position: absolute;
             top: 10vh;
-            right: 1vw;
+            right: 0.5vh;
             display: flex;
             flex-direction: column;
             gap: 1vh;
@@ -67,6 +67,7 @@
             border: 1px solid #ccc;
             color: white;
             border-radius: 5px;
+            width: 8vh
         }
 
         /* Left and Right Look Buttons */
@@ -87,6 +88,7 @@
             padding: 1.2vh 1vw;
             border-radius: 5px;
             cursor: pointer;
+            font-weight: bold;
         }
 
         .look-controls .control-button:hover {
@@ -138,6 +140,11 @@
             background-color: rgba(139, 117, 251, 0.886);
         }
 
+        #zoom-in, #zoom-out{
+            padding: 2vh 1vw;
+            font-weight: bold;
+        }
+
         /* Positioning the look buttons slightly off the screen edges */
         #left {
             margin-left: 10px; /* Adjust value to control how far left off the edge it goes */
@@ -164,7 +171,30 @@
         }
 
         @media (max-width: 768px){
-            
+            .control-button{
+                font-size: 0.7rem;
+            }
+
+            .direction-display{
+                font-size: 0.8rem;
+            }
+
+            .look-controls .control-button{
+                font-size: 0.8rem;
+            }
+
+            .zoom-controls{
+                margin-top: 2vh;
+            }
+
+            #map-style-toggle {
+                margin-right: 0.5vw; /* Only applies to this element */
+            }
+
+            .hud-toggle{
+                bottom: 8vh;
+            }
+
         }
     </style>
 </head>
