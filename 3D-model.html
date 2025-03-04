@@ -631,7 +631,7 @@
         document.getElementById('toggleLabels').addEventListener('click', async function () {
             const button = this;
             const center = map.getCenter();
-            const radiusKm = 5; // Set your radius (e.g., 10km)
+            const radiusKm = 5; // Adjust as needed
 
             if (mountainPopups.length > 0) {
                 // Hide labels
@@ -639,11 +639,40 @@
                 mountainPopups = [];
                 button.textContent = "Show Mountain Labels";
             } else {
-                // Show labels within the radius
+                // Get peaks
                 const bounds = map.getBounds().toArray().flat();
-                const peaks = await getMountainPeaks(bounds, center, radiusKm);
-                
-                mountainPopups = peaks.map(peak => {
+                let peaks = await getMountainPeaks(bounds, center, radiusKm);
+
+                // Get screen space positions
+                peaks = peaks.map(peak => {
+                    const projected = map.project([peak.lon, peak.lat]); // Convert to screen coordinates
+                    return {
+                        ...peak,
+                        screenX: projected.x,
+                        screenY: projected.y,
+                        elevation: peak.tags.ele ? parseFloat(peak.tags.ele) : 0 // Default to 0 if no elevation
+                    };
+                });
+
+                // Sort peaks by distance (closer peaks first)
+                peaks.sort((a, b) => getDistance(center.lat, center.lng, a.lat, a.lon) - 
+                                    getDistance(center.lat, center.lng, b.lat, b.lon));
+
+                // Filter out occluded peaks
+                const visiblePeaks = [];
+                const seenPoints = new Map();
+
+                for (const peak of peaks) {
+                    const key = `${Math.round(peak.screenX)}-${Math.round(peak.screenY)}`;
+
+                    if (!seenPoints.has(key) || peak.elevation > seenPoints.get(key)) {
+                        visiblePeaks.push(peak);
+                        seenPoints.set(key, peak.elevation);
+                    }
+                }
+
+                // Create popups for visible peaks
+                mountainPopups = visiblePeaks.map(peak => {
                     return new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
                         .setLngLat([peak.lon, peak.lat])
                         .setHTML(`<strong>${peak.tags.name || "Unnamed Peak"}</strong>`)
