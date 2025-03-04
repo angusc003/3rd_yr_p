@@ -69,10 +69,12 @@
         .zoom-controls {
             position: absolute;
             top: 10vh;
-            right: 0.5vh;
+            right: 1vh;
             display: flex;
+            align-items: center;
             flex-direction: column;
-            gap: 1vh;
+            gap: 0.7vh;
+            
         }
 
         .zoom-controls .control-button {
@@ -81,6 +83,7 @@
             border-radius: 5px;
             width: 8vh
         }
+    
 
         /* Left and Right Look Buttons */
         .look-controls {
@@ -234,6 +237,7 @@
             <button class="control-button" id="view">POV</button>
             <button class="control-button" id="bird-view">Birdseye View</button>
             <button class="control-button" id="toggleLabels">Show Mountain Labels</button>
+            <button class="control-button" id="center-marker">Center Marker</button>
         </div>
     </div>
 
@@ -277,8 +281,8 @@
             container: 'map',
             style: currentStyle,
             center: initialCenter,
-            zoom: 16,
-            pitch: 55, // Tilt the map to simulate a 3D effect
+            zoom: 17,
+            pitch: 60, // Tilt the map to simulate a 3D effect
             bearing: 0, // Angle of view
         });
 
@@ -436,8 +440,8 @@
             const bearing = map.getBearing();
             map.flyTo({
                 center: initialCenter,
-                zoom: 16,
-                pitch: 45,
+                zoom: 17,
+                pitch: 60,
                 bearing: bearing,
             });
         }
@@ -585,7 +589,7 @@
                 button.innerText = 'Normal View';
             } else {
                 // Change back to normal view
-                map.setPitch(55);
+                map.setPitch(60);
                 map.setZoom(16)
                 button.innerText = 'Birdseye View';
             }
@@ -706,6 +710,24 @@
                 warning.style.display = 'none'; // Hide warning in landscape mode
             }
         }
+
+        document.getElementById('center-marker').addEventListener('click', () => {
+            if (currentMarker) {
+                map.flyTo({
+                    center: currentMarker.getLngLat(),
+                    zoom: map.getZoom(), // Keep the current zoom level
+                    pitch: map.getPitch(), // Keep the current pitch
+                    bearing: map.getBearing() // Keep the current bearing
+                });
+            } else {
+                Swal.fire({
+                    icon: "warning",
+                    title: "No Marker Placed",
+                    text: "Please place a marker before centering.",
+                    confirmButtonColor: "#176DE8",
+                });
+            }
+        });
 
         window.addEventListener('resize', checkOrientation);
         window.addEventListener('load', checkOrientation);
