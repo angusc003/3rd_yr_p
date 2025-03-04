@@ -24,6 +24,10 @@
             box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.2);
         }
 
+        #dropdown-toggle{
+            width: 100%;
+        }
+
         /* Hide dropdown content initially */
         .dropdown-content {
             display: none;
@@ -229,7 +233,7 @@
             <button class="control-button" id="original">Original Position</button>
             <button class="control-button" id="view">POV</button>
             <button class="control-button" id="bird-view">Birdseye View</button>
-            <button class="control-button" id="snapshot">Screenshot</button>
+            <button class="control-button" id="toggleLabels">Show Mountain Labels</button>
         </div>
     </div>
 
@@ -267,7 +271,6 @@
         let coordinates = null;
         let currentMarker = null; // Variable to store the current marker
         let currentStyle = 'mapbox://styles/mapbox/satellite-streets-v12';
-
 
         // Initialize Mapbox map
         const map = new mapboxgl.Map({
@@ -552,7 +555,7 @@
         document.getElementById('hud-toggle').addEventListener('click', toggleHUD);
 
         function toggleHUD() {
-            const hudElements = document.querySelectorAll('.control-panel, .look-controls, .zoom-controls, .direction-display');
+            const hudElements = document.querySelectorAll('.dropdown, .look-controls, .zoom-controls, .direction-display');
             const hudToggleButton = document.getElementById('hud-toggle');
             
             // Check the current state and toggle visibility
@@ -588,23 +591,64 @@
             }
         }
 
-        document.getElementById('snapshot').addEventListener('click', () => {
-            map.once('render', () => {
-                const canvas = map.getCanvas();
-                const snapshotCanvas = document.getElementById('snapshotCanvas');
-                const ctx = snapshotCanvas.getContext('2d');
-                snapshotCanvas.width = canvas.width;
-                snapshotCanvas.height = canvas.height;
-                ctx.drawImage(canvas, 0, 0);
-                const imageUrl = snapshotCanvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = imageUrl;
-                link.download = 'map_snapshot.png';
-                link.click();
-            });
-            map.triggerRepaint();
-        });
+        let mountainPopups = []; // Store popups for removal
 
+        // Function to calculate distance between two coordinates (Haversine Formula)
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distance in km
+        }
+
+        async function getMountainPeaks(bounds, center, radiusKm) {
+            const [minLng, minLat, maxLng, maxLat] = bounds;
+            const query = `
+                [out:json];
+                node[natural=peak](${minLat},${minLng},${maxLat},${maxLng});
+                out;
+            `;
+            const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Filter peaks within the specified radius
+            return data.elements.filter(peak => {
+                const peakDistance = getDistance(center.lat, center.lng, peak.lat, peak.lon);
+                return peakDistance <= radiusKm;
+            });
+        }
+
+        document.getElementById('toggleLabels').addEventListener('click', async function () {
+            const button = this;
+            const center = map.getCenter();
+            const radiusKm = 5; // Set your radius (e.g., 10km)
+
+            if (mountainPopups.length > 0) {
+                // Hide labels
+                mountainPopups.forEach(popup => popup.remove());
+                mountainPopups = [];
+                button.textContent = "Show Mountain Labels";
+            } else {
+                // Show labels within the radius
+                const bounds = map.getBounds().toArray().flat();
+                const peaks = await getMountainPeaks(bounds, center, radiusKm);
+                
+                mountainPopups = peaks.map(peak => {
+                    return new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+                        .setLngLat([peak.lon, peak.lat])
+                        .setHTML(`<strong>${peak.tags.name || "Unnamed Peak"}</strong>`)
+                        .addTo(map);
+                });
+
+                button.textContent = "Hide Mountain Labels";
+            }
+        });
 
         document.getElementById('zoom-in').addEventListener('click', () => {
             map.zoomIn();
