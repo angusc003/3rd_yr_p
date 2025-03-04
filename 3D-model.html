@@ -185,6 +185,31 @@
             display: none; /* Hidden by default */
         }
 
+        /* Custom styling for mountain popups */
+        .custom-popup .mapboxgl-popup-content {
+            background: rgba(20, 20, 20, 0.85); /* Dark, semi-transparent */
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Small arrow styling */
+        .custom-popup .mapboxgl-popup-tip {
+            border-top-color: rgba(20, 20, 20, 0.85) !important; /* Match background */
+        }
+
+        /* Hover effect */
+        .popup-hover .mapboxgl-popup-content {
+            background: rgba(30, 30, 30, 1); /* Slightly darker */
+            transform: scale(1.05); /* Slightly enlarge */
+            transition: all 0.2s ease-in-out;
+        }
+
         @media (max-width: 768px){
             .control-button{
                 font-size: 0.7rem;
@@ -673,10 +698,30 @@
 
                 // Create popups for visible peaks
                 mountainPopups = visiblePeaks.map(peak => {
-                    return new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-                        .setLngLat([peak.lon, peak.lat])
-                        .setHTML(`<strong>${peak.tags.name || "Unnamed Peak"}</strong>`)
-                        .addTo(map);
+                    const popup = new mapboxgl.Popup({
+                        closeButton: false, 
+                        closeOnClick: false,
+                        className: "custom-popup" // Add a custom class for styling
+                    })
+                    .setLngLat([peak.lon, peak.lat])
+                    .setHTML(`<strong>${peak.tags.name || "Unnamed Peak"}</strong>`)
+                    .addTo(map);
+
+                    // Get the popup's container element
+                    const popupElement = popup.getElement();
+
+                    // Bring popup to front on hover
+                    popupElement.addEventListener("mouseenter", () => {
+                        popupElement.style.zIndex = "1000"; // Bring to front
+                        popupElement.classList.add("popup-hover"); // Add hover effect
+                    });
+
+                    popupElement.addEventListener("mouseleave", () => {
+                        popupElement.style.zIndex = ""; // Reset z-index
+                        popupElement.classList.remove("popup-hover"); // Remove hover effect
+                    });
+
+                    return popup;
                 });
 
                 button.textContent = "Hide Mountain Labels";
