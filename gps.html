@@ -164,6 +164,22 @@
         map.setView([lat, long]);
     }
 
+    // Function to move the marker when clicking on the map
+    map.on('click', function (e) {
+        const newLat = e.latlng.lat;
+        const newLng = e.latlng.lng;
+
+        if (marker) {
+            marker.setLatLng([newLat, newLng]); // Move existing marker
+            circle.setLatLng([newLat, newLng]); // Move circle
+        } else {
+            marker = L.marker([newLat, newLng]).addTo(map); // Create marker if it doesn't exist
+            circle = L.circle([newLat, newLng], { radius: 50 }).addTo(map); // Default radius if no accuracy data
+        }
+
+        console.log("Marker moved to:", newLat, newLng);
+    });
+
     function navigateTo3DModel() {
         if (marker) {
             const lat = marker.getLatLng().lat;

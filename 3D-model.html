@@ -4,23 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mapbox 3D Map with Terrain and Buildings</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.10.0/mapbox-gl.css" rel="stylesheet" />
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
         #map { width: 100%; height: 100%; }
 
-        /* Control Panel */
-        .control-panel {
+        /* Dropdown Container */
+        .dropdown {
             position: absolute;
             top: 1vh;
             left: 1vw;
             background: rgba(255, 255, 255, 0.8);
-            padding: 1vw;
+            padding-left: 1vw;
+            padding-right: 1vw;
+            padding-top: 1vw;
+            padding-bottom: 0.2vw;
             border-radius: 0.8vw;
             box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.2);
-            display: flex;
+        }
+
+        /* Hide dropdown content initially */
+        .dropdown-content {
+            display: none;
             flex-direction: column;
-            gap: 0.8vw;
         }
         
         .control-button {
@@ -30,6 +37,7 @@
             padding: 1vh 1vw;
             border-radius: 0.5vw;
             cursor: pointer;
+            margin-bottom: 0.8vw;
             font-size: 1.2rem;
             text-align: center;
             transition: background 0.2s;
@@ -214,13 +222,15 @@
         <button id="map-style-toggle" class="map-style-toggle" style="background-image: url('street-view.png');" data-tooltip="Switch to Street View"></button>
     </div>
 
-    <!-- general controls -->
-    <div class="control-panel">
-        <button class="control-button" id="home-button">Home</button>
-        <button class="control-button" id="original">Original Position</button>
-        <button class="control-button" id="view">POV</button>
-        <button class="control-button" id="bird-view">Birdseye View</button>
-        <button class="control-button" id="snapshot">Screenshot</button>
+    <div class="dropdown">
+        <button class="control-button" id="dropdown-toggle">Menu ▼</button>
+        <div class="dropdown-content" id="dropdown-content">
+            <button class="control-button" id="home-button">Home</button>
+            <button class="control-button" id="original">Original Position</button>
+            <button class="control-button" id="view">POV</button>
+            <button class="control-button" id="bird-view">Birdseye View</button>
+            <button class="control-button" id="snapshot">Screenshot</button>
+        </div>
     </div>
 
     
@@ -508,6 +518,20 @@
             });
         });
 
+        document.getElementById("dropdown-toggle").addEventListener("click", function () {
+            const dropdown = document.getElementById("dropdown-content");
+            const button = document.getElementById("dropdown-toggle");
+
+            // Toggle dropdown visibility
+            if (dropdown.style.display === "flex") {
+                dropdown.style.display = "none";
+                button.innerHTML = "Menu ▼"; // Change back to downward triangle
+            } else {
+                dropdown.style.display = "flex";
+                button.innerHTML = "Menu ▲"; // Change to upward triangle
+            }
+        });
+
         // Add button functionality
         document.getElementById('left').addEventListener('click', () => {
             map.rotateTo((map.getBearing() - 45));
@@ -611,8 +635,8 @@
             console.log('Current Marker Coordinates:', coordinates);
         });
 
-        function viewPoint(coordinates){
-            if (coordinates){
+        function viewPoint(coordinates) {
+            if (coordinates) {
                 const bearing = map.getBearing();
                 map.flyTo({
                     center: coordinates,
@@ -621,7 +645,12 @@
                     bearing: bearing,
                 });
             } else {
-                console.log("Need to place a marker")
+                Swal.fire({
+                    icon: "warning",
+                    title: "Marker Required",
+                    text: "Please click on a location to place a marker before using this feature.",
+                    confirmButtonColor: "#176DE8",
+                });
             }
         }
 
